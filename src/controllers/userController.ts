@@ -29,7 +29,7 @@ export const getUserById = async (req: Request, res: Response) => {
         res.json(thought);
       } else {
         res.status(404).json({
-          message: 'Volunteer not found'
+          message: 'User not found'
         });
       }
     } catch (error: any) {
@@ -45,18 +45,19 @@ export const getUserById = async (req: Request, res: Response) => {
  * @returns a single User object
 */
 export const createUser = async (req: Request, res: Response) => {
-    const { user } = req.body;
-    try {
+  const { username, email } = req.body;
+  try {
       const newUser = await User.create({
-        user
+          username,
+          email,
       });
       res.status(201).json(newUser);
-    } catch (error: any) {
+  } catch (error: any) {
       res.status(400).json({
-        message: error.message
+          message: error.message
       });
-    }
-  };
+  }
+};
 
 /**
  * PUT User based on id /users/:id
