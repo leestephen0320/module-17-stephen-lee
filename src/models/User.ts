@@ -19,13 +19,13 @@ const userSchema = new Schema<IUser>(
             type: String,
             required: true,
             unique: true,
-            match: /.+\@.+\..+/,
+            match: [/.+@.+\..+/, 'Please enter a valid email address'],
 
         },
         thoughts: [
             {
                 type: Schema.Types.ObjectId,
-                ref: 'student',
+                ref: 'thought',
             },
         ],
         friends: [

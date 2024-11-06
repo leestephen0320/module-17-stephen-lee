@@ -97,8 +97,8 @@ export const deleteThought = async (req: Request, res: Response) => {
           message: 'No thought with that ID'
         });
       } else {
-        await Thought.deleteMany({ _id: { $in: thought.username } });
-        res.json({ message: 'Thought and thoughts deleted!' });
+        await User.deleteMany({ username: { $in: thought.username } });
+        res.json({ message: 'Thought and users deleted!' });
       }
       
     } catch (error: any) {
