@@ -3,6 +3,21 @@ import { User, Thought } from '../models/index.js';
 import { Types } from 'mongoose';
 
 /**
+ * GET All Thoughts /thoughts
+ * @returns an array of Thoughts
+*/
+export const getAllThoughts = async (_req: Request, res: Response) => {
+    try {
+        const thoughts = await Thought.find();
+        res.json(thoughts);
+    } catch (error: any) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+/**
  * GET Thought based on id /thought/:id
  * @param string id
  * @returns a single Thought object
