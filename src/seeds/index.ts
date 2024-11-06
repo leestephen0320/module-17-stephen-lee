@@ -1,49 +1,47 @@
 import db from '../config/connection.js';
-import { Course, Student } from '../models/index.js';
+import { User, Thought } from '../models/index.js';
 import cleanDB from './cleanDB.js';
-import { getRandomName, getRandomAssignments } from './data.js';
+import { users, thoughts } from './data.js';
 
 try {
   await db();
-  await cleanDB();
+  await cleanDB(); // Clean up the DB before seeding
 
-  // Create empty array to hold the students
-  const students = [];
+  // Insert thoughts into the database first because we need the thought IDs for the users
+  const thoughtIds = await Thought.insertMany(thoughts);
+  const thoughtIdsMap = new Map(
+    thoughtIds.map((thought: any) => [thought.thoughtText, thought._id])
+  );
 
-  // Loop 20 times -- add students to the students array
-  for (let i = 0; i < 20; i++) {
-    // Get some random assignment objects using a helper function that we imported from ./data
-    const assignments = getRandomAssignments(20);
+  // Update the users to associate their thoughts by the inserted thought IDs
+  const usersWithThoughts = users.map(user => ({
+    ...user,
+    thoughts: thoughts
+      .filter(thought => thought.username === user.username)
+      .map(thought => thoughtIdsMap.get(thought.thoughtText)),
+  }));
 
-    const fullName = getRandomName();
-    const first = fullName.split(' ')[0];
-    const last = fullName.split(' ')[1];
-    const github = `${first}${Math.floor(Math.random() * (99 - 18 + 1) + 18)}`;
+  // Insert users into the database
+  const userData = await User.insertMany(usersWithThoughts);
 
-    students.push({
-      first,
-      last,
-      github,
-      assignments,
-    });
+  // Add friends relationships (for simplicity, manually define friendships)
+  const userMap = new Map(userData.map(user => [user.username, user._id]));
+
+  // Manually defining friend relationships, using type assertion for 'friends' as ObjectId[] to avoid errors
+  (userData[0].friends as any[]).push(userMap.get('jane_smith')!, userMap.get('alice_wonder')!);  // john_doe's friends
+  (userData[1].friends as any[]).push(userMap.get('john_doe')!);  // jane_smith's friend
+  (userData[2].friends as any[]).push(userMap.get('john_doe')!);  // alice_wonder's friend
+
+  // Save updated user data with friends relationships
+  for (const user of userData) {
+    await user.save();
   }
 
-  // Add students to the collection and await the results
-  const studentData = await Student.create(students);
-
-  // Add courses to the collection and await the results
-  await Course.create({
-    name: 'UCLA',
-    inPerson: false,
-    students: [...studentData.map(({ _id }: { [key: string]: any }) => _id)],
-  });
-
-  // Log out the seed data to indicate what should appear in the database
-  console.table(students);
+  console.table(userData);
+  console.table(thoughts);
   console.info('Seeding complete! 🌱');
   process.exit(0);
 } catch (error) {
   console.error('Error seeding database:', error);
   process.exit(1);
 }
-
