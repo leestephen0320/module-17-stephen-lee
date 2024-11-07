@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { User, Thought } from '../models/index.js';
 import { Types } from 'mongoose';
+import { IReaction } from '../models/Thought.js';
 
 /**
  * GET All Thoughts /thoughts
@@ -125,3 +126,77 @@ export const deleteThought = async (req: Request, res: Response): Promise<void> 
     }
 };
 
+export const addReaction = async (req: Request, res: Response): Promise<void> => {
+    const { thoughtId } = req.params;
+    const { reactionBody, username } = req.body;
+
+    try {
+        // Validate if the thoughtId is a valid ObjectId
+        if (!Types.ObjectId.isValid(thoughtId)) {
+            res.status(400).json({ message: 'Invalid thought ID' });
+            return;
+        }
+
+        // Find the thought by thoughtId
+        const thought = await Thought.findById(thoughtId);
+        if (!thought) {
+            res.status(404).json({ message: 'Thought not found' });
+            return;
+        }
+
+        // Create the new reaction object and ensure it conforms to IReaction type
+        const newReaction: IReaction = {
+            reactionId: new Types.ObjectId(),  // Generate new ObjectId for the reaction
+            reactionBody,                      // Body of the reaction
+            username,                           // Username of the person reacting
+            createdAt: new Date(),              // Current timestamp for createdAt
+        };
+
+        // Add the new reaction to the thought's reactions array
+        thought.reactions.push(newReaction);
+
+        // Save the updated thought document
+        await thought.save();
+
+        // Return the updated thought
+        res.status(201).json(thought);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+export const deleteReaction = async (req: Request, res: Response): Promise<void> => {
+    const { thoughtId, reactionId } = req.params;
+
+    try {
+        // Validate if thoughtId and reactionId are valid ObjectIds
+        if (!Types.ObjectId.isValid(thoughtId) || !Types.ObjectId.isValid(reactionId)) {
+            res.status(400).json({ message: 'Invalid thought ID or reaction ID' });
+            return; // Ensure the function doesn't continue after sending the response
+        }
+
+        // Find the thought by thoughtId
+        const thought = await Thought.findById(thoughtId);
+        if (!thought) {
+            res.status(404).json({ message: 'Thought not found' });
+            return;
+        }
+
+        // Find the reaction to delete by reactionId
+        const reactionIndex = thought.reactions.findIndex((reaction) => reaction.reactionId.toString() === reactionId);
+        if (reactionIndex === -1) {
+            res.status(404).json({ message: 'Reaction not found' });
+            return;
+        }
+
+        // Remove the reaction from the reactions array
+        thought.reactions.splice(reactionIndex, 1);
+
+        // Save the updated thought
+        await thought.save();
+        res.json(thought);  // Return the updated thought
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
