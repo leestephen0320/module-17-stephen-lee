@@ -18,4 +18,4 @@ router
   .put(updateThought)
   .delete(deleteThought);
 
-export { router as thoughtRouter };
+export { router as thoughtRoutes };

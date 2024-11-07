@@ -124,3 +124,4 @@ export const deleteThought = async (req: Request, res: Response): Promise<void> 
         });
     }
 };
+

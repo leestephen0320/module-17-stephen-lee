@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { User, Thought } from '../models/index.js';
+import { Types } from 'mongoose';
 
 /**
  * GET All Users /users
@@ -108,3 +109,79 @@ export const deleteUser = async (req: Request, res: Response) => {
       });
     }
   };
+
+  export const addFriend = async (req: Request, res: Response) => {
+    const { userId, friendId } = req.params;
+
+    try {
+        // Validate if userId and friendId are valid ObjectIds
+        if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(friendId)) {
+            res.status(400).json({ message: 'Invalid user ID or friend ID' });
+            return;
+        }
+
+        // Ensure the user and friend exist
+        const user = await User.findById(userId);
+        const friend = await User.findById(friendId);
+
+        if (!user || !friend) {
+            res.status(404).json({ message: 'User or friend not found' });
+            return;
+        }
+
+        // Check if the friend is already added
+        if (user.friends.includes(friend.id)) {
+            res.status(400).json({ message: 'Friend already added' });
+            return;
+        }
+
+        // Add friendId to user's friends array
+        user.friends.push(friend.id);
+        await user.save();
+
+        res.json(user);
+    } catch (error: any) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+export const deleteFriend = async (req: Request, res: Response) => {
+  const { userId, friendId } = req.params;
+
+  try {
+      // Validate if userId and friendId are valid ObjectIds
+      if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(friendId)) {
+          res.status(400).json({ message: 'Invalid user ID or friend ID' });
+          return;
+      }
+
+      // Ensure the user and friend exist
+      const user = await User.findById(userId);
+      const friend = await User.findById(friendId);
+
+      if (!user || !friend) {
+          res.status(404).json({ message: 'User or friend not found' });
+          return;
+      }
+
+      // Check if the friend is in the user's friends list
+      const friendIndex = user.friends.indexOf(friend.id);
+
+      if (friendIndex === -1) {
+          res.status(400).json({ message: 'Friend not found in the user\'s friends list' });
+          return;
+      }
+
+      // Remove friendId from user's friends array
+      user.friends.splice(friendIndex, 1);
+      await user.save();
+
+      res.json({ message: 'Friend removed successfully', user });
+  } catch (error: any) {
+      res.status(500).json({
+          message: error.message
+      });
+  }
+};
